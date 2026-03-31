@@ -38,6 +38,7 @@ app.listen(PORT, () => {
     console.log(`  /api/payment      → ${config.services.payment}`);
     console.log(`  /api/notification → ${config.services.notification}`);
     console.log(`  /api/ai           → ${config.services.ai}`);
+    console.log(`  /api/admin        → ${config.services.admin}`);
 });
 
 module.exports = app;

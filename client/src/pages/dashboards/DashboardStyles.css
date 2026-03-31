@@ -103,23 +103,40 @@
 }
 
 .dashboard-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  font-size: 1.5rem;
-  transition: all var(--transition);
+  margin-bottom: 20px;
+  color: var(--primary-light);
+  transition: all var(--transition-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card-icon svg {
+  width: 26px;
+  height: 26px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  transition: all var(--transition-md);
 }
 
 .dashboard-card:hover .dashboard-card-icon {
-  transform: scale(1.08);
-  box-shadow: var(--shadow-glow-sm);
-  border-color: var(--border-active);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.2), var(--shadow-glow-sm);
+  border-color: var(--primary-light);
+  background: var(--bg-primary);
+  color: #fff;
+}
+
+.dashboard-card:hover .dashboard-card-icon svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px var(--primary));
 }
 
 .dashboard-card h3 {
@@ -209,3 +226,81 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ─── Admin Tables ─────────────────────────────────────── */
+.admin-table-container {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.status-verified {
+  background: rgba(20, 184, 166, 0.1);
+  color: #14b8a6;
+}
+
+.status-pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  border-color: var(--primary);
+  color: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.btn-icon.btn-danger-icon:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}

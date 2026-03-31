@@ -70,6 +70,24 @@ services:
       - healthcare-network
     restart: unless-stopped
 
+  # ─── Admin Service ────────────────────────────────────
+  admin-service:
+    build:
+      context: ..
+      dockerfile: docker/admin-service.Dockerfile
+    container_name: healthcare-admin-service
+    ports:
+      - "5008:5008"
+    environment:
+      - PORT=5008
+      - MONGO_URI=mongodb://mongodb:27017/healthcare-auth
+      - JWT_SECRET=healthcare_jwt_secret_key_2024
+    depends_on:
+      - mongodb
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+
 volumes:
   mongodb_data:
 

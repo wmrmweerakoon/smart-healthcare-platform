@@ -9,6 +9,8 @@ const config = {
         payment: process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',
         notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5006',
         ai: process.env.AI_SERVICE_URL || 'http://localhost:5007',
+        admin: process.env.ADMIN_SERVICE_URL || 'http://localhost:5008',
+        video: process.env.VIDEO_SERVICE_URL || 'http://localhost:5009',
     },
     jwtSecret: process.env.JWT_SECRET || 'healthcare_jwt_secret_key_2024',
 };

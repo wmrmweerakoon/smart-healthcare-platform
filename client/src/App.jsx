@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import PatientDashboard from './pages/dashboards/PatientDashboard';
 import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
+import DoctorList from './pages/DoctorList';
 
 const App = () => {
     const { loading } = useAuth();
@@ -32,6 +33,7 @@ const App = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/doctors" element={<DoctorList />} />
 
                 {/* Protected: Dashboard Redirector */}
                 <Route

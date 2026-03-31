@@ -163,6 +163,57 @@ const setupRoutes = (app) => {
             pathRewrite: { '^/api/ai': '' },
         })
     );
+
+    // ─── Admin Service (requires authentication, admin only) ─────────
+    app.use(
+        '/api/admin',
+        verifyToken,
+        roleCheck('admin'),
+        createProxyMiddleware({
+            target: config.services.admin,
+            changeOrigin: true,
+            pathRewrite: { '^/api/admin': '' },
+            on: {
+                proxyReq: (proxyReq, req) => {
+                    if (req.user) {
+                        proxyReq.setHeader('X-User-Id', req.user.id);
+                        proxyReq.setHeader('X-User-Role', req.user.role);
+                    }
+                    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+                        const bodyData = JSON.stringify(req.body);
+                        proxyReq.setHeader('Content-Type', 'application/json');
+                        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+                        proxyReq.write(bodyData);
+                    }
+                },
+            },
+        })
+    );
+
+    // ─── Telemedicine Service (video) ────────────────────────
+    app.use(
+        '/api/video',
+        verifyToken,
+        createProxyMiddleware({
+            target: config.services.video,
+            changeOrigin: true,
+            pathRewrite: { '^/api/video': '' },
+            on: {
+                proxyReq: (proxyReq, req) => {
+                    if (req.user) {
+                        proxyReq.setHeader('X-User-Id', req.user.id);
+                        proxyReq.setHeader('X-User-Role', req.user.role);
+                    }
+                    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+                        const bodyData = JSON.stringify(req.body);
+                        proxyReq.setHeader('Content-Type', 'application/json');
+                        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+                        proxyReq.write(bodyData);
+                    }
+                },
+            },
+        })
+    );
 };
 
 module.exports = setupRoutes;

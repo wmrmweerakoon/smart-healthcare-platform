@@ -31,6 +31,10 @@ const UserSchema = new mongoose.Schema(
             enum: ['patient', 'doctor', 'admin'],
             default: 'patient',
         },
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );
