@@ -1,75 +1,192 @@
-/* ─── Auth Pages (Login & Register) ──────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Auth Pages — Split Layout v2
+   ═══════════════════════════════════════════════════════════ */
+
 .auth-page {
-    min-height: calc(100vh - 64px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    padding: 40px 24px;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  overflow: hidden;
 }
 
-.auth-bg-glow {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    background: var(--primary);
-    border-radius: 50%;
-    filter: blur(160px);
-    opacity: 0.1;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
+/* ─── Left Panel (Visual) ───────────────────────────────── */
+.auth-panel {
+  width: 45%;
+  min-height: 100%;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.85) 0%, rgba(49, 46, 129, 0.9) 50%, rgba(30, 27, 75, 0.95) 100%),
+    url('/login-bg.png') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 48px;
 }
 
-.auth-container {
-    width: 100%;
-    max-width: 440px;
-    position: relative;
-    z-index: 1;
-    animation: slideUp 0.5s ease;
+.auth-panel-register {
+  background: linear-gradient(135deg, rgba(14, 75, 109, 0.85) 0%, rgba(22, 78, 99, 0.9) 50%, rgba(12, 46, 64, 0.95) 100%),
+    url('/register-bg.png') center/cover no-repeat;
 }
 
-.auth-card {
-    padding: 40px 36px;
+.auth-panel-content {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  max-width: 380px;
+}
+
+.auth-panel-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.auth-panel-content h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.auth-panel-content h2 span {
+  background: linear-gradient(135deg, #a5b4fc, #67e8f9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-panel-content p {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.auth-panel-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-panel-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ─── Right Side (Form) ─────────────────────────────────── */
+.auth-form-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 400px;
+  animation: slideUp 0.5s var(--ease-out);
 }
 
 .auth-header {
-    text-align: center;
-    margin-bottom: 32px;
+  margin-bottom: 32px;
 }
 
 .auth-header h2 {
-    margin-bottom: 8px;
+  font-size: 1.75rem;
+  margin-bottom: 8px;
 }
 
 .auth-subtitle {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .auth-footer {
-    text-align: center;
-    margin-top: 24px;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+  text-align: center;
+  margin-top: 28px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .auth-link {
-    color: var(--primary-light);
-    font-weight: 600;
-    transition: var(--transition-fast);
+  color: var(--primary-light);
+  font-weight: 600;
+  transition: var(--transition-fast);
 }
 
 .auth-link:hover {
-    color: var(--primary);
-    text-decoration: underline;
+  color: var(--primary);
+  text-decoration: underline;
 }
 
-/* Responsive */
+/* ─── Password Strength ─────────────────────────────────── */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.strength-bar {
+  height: 3px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--border);
+  transition: all 0.3s ease;
+}
+
+.strength-bar.active {
+  height: 4px;
+}
+
+.strength-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-width: 55px;
+  text-align: right;
+}
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .auth-panel {
+    display: none;
+  }
+
+  .auth-form-side {
+    padding: 40px 24px;
+  }
+
+  .auth-page {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 480px) {
-    .auth-card {
-        padding: 28px 20px;
-    }
+  .auth-form-side {
+    padding: 28px 16px;
+  }
+
+  .auth-form-container {
+    max-width: 100%;
+  }
 }
