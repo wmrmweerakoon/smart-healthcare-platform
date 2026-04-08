@@ -70,6 +70,26 @@ services:
       - healthcare-network
     restart: unless-stopped
 
+  # ─── Patient Service ─────────────────────────────────
+  patient-service:
+    build:
+      context: ..
+      dockerfile: docker/patient-service.Dockerfile
+    container_name: healthcare-patient-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - MONGO_URI=mongodb://mongodb:27017/healthcare-patient
+      - JWT_SECRET=healthcare_jwt_secret_key_2024
+    volumes:
+      - patient_uploads:/app/uploads
+    depends_on:
+      - mongodb
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+
   # ─── Admin Service ────────────────────────────────────
   admin-service:
     build:
@@ -90,6 +110,7 @@ services:
 
 volumes:
   mongodb_data:
+  patient_uploads:
 
 networks:
   healthcare-network:
