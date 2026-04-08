@@ -41,7 +41,9 @@ const setupRoutes = (app) => {
                         proxyReq.setHeader('X-User-Id', req.user.id);
                         proxyReq.setHeader('X-User-Role', req.user.role);
                     }
-                    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+                    // Only re-serialize JSON bodies; let multipart/form-data (file uploads) pass through
+                    const contentType = req.headers['content-type'] || '';
+                    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method) && !contentType.includes('multipart/form-data')) {
                         const bodyData = JSON.stringify(req.body);
                         proxyReq.setHeader('Content-Type', 'application/json');
                         proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

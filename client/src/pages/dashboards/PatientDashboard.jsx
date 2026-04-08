@@ -131,6 +131,17 @@ const PatientDashboard = () => {
     }
   };
 
+  const viewReport = async (report) => {
+    try {
+      const res = await API.get(`/patient${report.fileUrl}`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: report.fileType });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to view report' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -418,15 +429,13 @@ const PatientDashboard = () => {
                             <td><span className="badge badge-secondary">{report.fileType.split('/')[1].toUpperCase()}</span></td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <a
-                                  href={`/api/patient${report.fileUrl}`}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  onClick={() => viewReport(report)}
                                   className="btn-icon"
                                   title="View File"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-                                </a>
+                                </button>
                                 <button
                                   onClick={() => deleteReport(report._id)}
                                   className="btn-icon btn-danger-icon"
