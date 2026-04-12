@@ -39,6 +39,7 @@ app.listen(PORT, () => {
     console.log(`  /api/notification → ${config.services.notification}`);
     console.log(`  /api/ai           → ${config.services.ai}`);
     console.log(`  /api/admin        → ${config.services.admin}`);
+    console.log(`  /api/video        → ${config.services.video}`);
 });
 
 module.exports = app;

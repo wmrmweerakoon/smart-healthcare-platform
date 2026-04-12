@@ -54,6 +54,34 @@ const setupRoutes = (app) => {
         })
     );
 
+    // ─── Doctor Service — Public routes (no auth) ──────────────────
+    app.use(
+        '/api/doctor/search',
+        createProxyMiddleware({
+            target: config.services.doctor,
+            changeOrigin: true,
+            pathRewrite: { '^/api/doctor/search': '/search' },
+        })
+    );
+
+    app.use(
+        '/api/doctor/all',
+        createProxyMiddleware({
+            target: config.services.doctor,
+            changeOrigin: true,
+            pathRewrite: { '^/api/doctor/all': '/all' },
+        })
+    );
+
+    app.use(
+        '/api/doctor/availability/',
+        createProxyMiddleware({
+            target: config.services.doctor,
+            changeOrigin: true,
+            pathRewrite: { '^/api/doctor/availability': '/availability' },
+        })
+    );
+
     // ─── Doctor Service (requires authentication, doctor role) ───────
     app.use(
         '/api/doctor',

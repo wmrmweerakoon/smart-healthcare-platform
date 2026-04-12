@@ -13,6 +13,7 @@ import PatientDashboard from './pages/dashboards/PatientDashboard';
 import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import DoctorList from './pages/DoctorList';
+import VideoCall from './pages/VideoCall';
 
 const App = () => {
     const { loading } = useAuth();
@@ -71,6 +72,16 @@ const App = () => {
                     element={
                         <ProtectedRoute roles={['admin']}>
                             <AdminDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Protected: Video Call */}
+                <Route
+                    path="/video/:roomId"
+                    element={
+                        <ProtectedRoute>
+                            <VideoCall />
                         </ProtectedRoute>
                     }
                 />

@@ -50,6 +50,8 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:5005
       - NOTIFICATION_SERVICE_URL=http://notification-service:5006
       - AI_SERVICE_URL=http://ai-service:5007
+      - ADMIN_SERVICE_URL=http://admin-service:5008
+      - VIDEO_SERVICE_URL=http://telemedicine-service:5009
     depends_on:
       - auth-service
     networks:
@@ -102,6 +104,61 @@ services:
       - PORT=5008
       - MONGO_URI=mongodb://mongodb:27017/healthcare-auth
       - JWT_SECRET=healthcare_jwt_secret_key_2024
+    depends_on:
+      - mongodb
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+
+  # ─── Doctor Service ─────────────────────────────────
+  doctor-service:
+    build:
+      context: ..
+      dockerfile: docker/doctor-service.Dockerfile
+    container_name: healthcare-doctor-service
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - MONGO_URI=mongodb://mongodb:27017/healthcare-doctor
+      - JWT_SECRET=healthcare_jwt_secret_key_2024
+    depends_on:
+      - mongodb
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+
+  # ─── Appointment Service ────────────────────────────
+  appointment-service:
+    build:
+      context: ..
+      dockerfile: docker/appointment-service.Dockerfile
+    container_name: healthcare-appointment-service
+    ports:
+      - "5004:5004"
+    environment:
+      - PORT=5004
+      - MONGO_URI=mongodb://mongodb:27017/healthcare-appointment
+      - JWT_SECRET=healthcare_jwt_secret_key_2024
+    depends_on:
+      - mongodb
+    networks:
+      - healthcare-network
+    restart: unless-stopped
+
+  # ─── Telemedicine Service ───────────────────────────
+  telemedicine-service:
+    build:
+      context: ..
+      dockerfile: docker/telemedicine-service.Dockerfile
+    container_name: healthcare-telemedicine-service
+    ports:
+      - "5009:5009"
+    environment:
+      - PORT=5009
+      - MONGO_URI=mongodb://mongodb:27017/healthcare-telemedicine
+      - JWT_SECRET=healthcare_jwt_secret_key_2024
+      - JITSI_DOMAIN=meet.jit.si
     depends_on:
       - mongodb
     networks:
