@@ -55,7 +55,17 @@ const setupRoutes = (app) => {
     );
 
     // ─── Doctor Service — Public routes (no auth) ──────────────────
-    app.use(
+    // These MUST come before the protected /api/doctor block
+    app.get(
+        '/api/doctor/availability/:doctorId',
+        createProxyMiddleware({
+            target: config.services.doctor,
+            changeOrigin: true,
+            pathRewrite: { '^/api/doctor/availability': '/availability' },
+        })
+    );
+
+    app.get(
         '/api/doctor/search',
         createProxyMiddleware({
             target: config.services.doctor,
@@ -64,7 +74,7 @@ const setupRoutes = (app) => {
         })
     );
 
-    app.use(
+    app.get(
         '/api/doctor/all',
         createProxyMiddleware({
             target: config.services.doctor,
@@ -73,20 +83,27 @@ const setupRoutes = (app) => {
         })
     );
 
-    app.use(
-        '/api/doctor/availability/',
-        createProxyMiddleware({
-            target: config.services.doctor,
-            changeOrigin: true,
-            pathRewrite: { '^/api/doctor/availability': '/availability' },
-        })
-    );
 
-    // ─── Doctor Service (requires authentication, doctor role) ───────
+    // ─── Doctor Service (Protected — requires doctor/admin role) ─────
+    // We handle profile, prescriptions, and availability management here
     app.use(
         '/api/doctor',
         verifyToken,
-        roleCheck('doctor', 'admin'),
+        (req, res, next) => {
+            // Safety: If it's one of the public routes that somehow leaked here, skip auth
+            const publicDoctorPaths = ['/search', '/all', '/availability'];
+            if (publicDoctorPaths.some(path => req.path.startsWith(path))) {
+                return next();
+            }
+
+            // Allow patients for specific routes like my-prescriptions
+            const patientAllowedPaths = ['/my-prescriptions'];
+            if (patientAllowedPaths.some(path => req.path.startsWith(path))) {
+                return roleCheck('doctor', 'admin', 'patient')(req, res, next);
+            }
+
+            roleCheck('doctor', 'admin')(req, res, next);
+        },
         createProxyMiddleware({
             target: config.services.doctor,
             changeOrigin: true,
@@ -107,6 +124,7 @@ const setupRoutes = (app) => {
             },
         })
     );
+
 
     // ─── Appointment Service (requires authentication, any role) ─────
     app.use(

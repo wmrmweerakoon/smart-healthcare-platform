@@ -19,9 +19,10 @@ const extractUser = (req, res, next) => {
     next();
 };
 
-// Restrict access to patient role only
-const patientOnly = (req, res, next) => {
-    if (req.user.role !== 'patient' && req.user.role !== 'admin') {
+// Restrict access to authorized roles (Patient, Doctor, Admin)
+const authorizedRoles = (req, res, next) => {
+    const allowed = ['patient', 'doctor', 'admin'];
+    if (!allowed.includes(req.user.role)) {
         return res.status(403).json({
             success: false,
             message: `Access denied — role '${req.user.role}' is not authorized`,
@@ -30,4 +31,5 @@ const patientOnly = (req, res, next) => {
     next();
 };
 
-module.exports = { extractUser, patientOnly };
+module.exports = { extractUser, patientOnly: authorizedRoles };
+

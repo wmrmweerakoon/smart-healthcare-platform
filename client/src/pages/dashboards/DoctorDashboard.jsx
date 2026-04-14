@@ -18,7 +18,9 @@ const DoctorDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -45,11 +47,13 @@ const DoctorDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [profileRes, appointmentsRes, prescriptionsRes] = await Promise.all([
+      const [profileRes, appointmentsRes, prescriptionsRes, patientsRes] = await Promise.all([
         API.get('/doctor/profile').catch(() => ({ data: { success: false } })),
         API.get('/appointment/my-appointments').catch(() => ({ data: { data: [] } })),
         API.get('/doctor/prescriptions').catch(() => ({ data: { data: [] } })),
+        API.get('/doctor/patients').catch(() => ({ data: { data: [] } })),
       ]);
+
 
       if (profileRes.data.success) {
         setProfile(profileRes.data.data);
@@ -67,6 +71,8 @@ const DoctorDashboard = () => {
 
       setAppointments(appointmentsRes.data.data || []);
       setPrescriptions(prescriptionsRes.data.data || []);
+      setPatients(patientsRes.data.data || []);
+
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -86,6 +92,7 @@ const DoctorDashboard = () => {
     try {
       const data = {
         ...profileForm,
+        name: user?.name, // Sync name from user context
         experience: profileForm.experience ? Number(profileForm.experience) : undefined,
         consultationFee: profileForm.consultationFee ? Number(profileForm.consultationFee) : undefined,
         qualifications: profileForm.qualifications.split(',').map(s => s.trim()).filter(Boolean),
@@ -250,7 +257,7 @@ const DoctorDashboard = () => {
 
         {/* Tabs */}
         <div className="tabs-container" style={{ marginBottom: '24px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          {['overview', 'profile', 'availability', 'appointments', 'prescriptions'].map(tab => (
+          {['overview', 'profile', 'availability', 'appointments', 'patients', 'prescriptions'].map(tab => (
             <button
               key={tab}
               className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`}
@@ -259,6 +266,7 @@ const DoctorDashboard = () => {
             >{tab}</button>
           ))}
         </div>
+
 
         {message.text && (
           <div className={`alert alert-${message.type}`} style={{ marginBottom: '24px' }}>
@@ -555,7 +563,51 @@ const DoctorDashboard = () => {
           </div>
         )}
 
+        {/* ═══ PATIENTS ═══ */}
+        {activeTab === 'patients' && (
+          <div className="dashboard-section scale-in">
+            <h2>My Patients</h2>
+            <div className="card">
+              {patients.length > 0 ? (
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Patient Name</th>
+                        <th>Patient ID</th>
+                        <th>Last Appointment</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patients.map(p => (
+                        <tr key={p.patientId}>
+                          <td style={{ fontWeight: 600 }}>{p.patientName || 'Unknown Patient'}</td>
+                          <td style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{p.patientId}</td>
+                          <td>{p.lastAppointment ? new Date(p.lastAppointment).toLocaleDateString() : 'N/A'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button className="btn btn-sm btn-outline" onClick={() => { setPrescriptionForm({ ...prescriptionForm, patientId: p.patientId }); setActiveTab('prescriptions'); }}>
+                                Issue Rx
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                  <p>No patients have booked appointments with you yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ═══ PRESCRIPTIONS ═══ */}
+
         {activeTab === 'prescriptions' && (
           <div className="dashboard-section scale-in">
             <h2>Prescriptions</h2>

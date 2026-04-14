@@ -204,6 +204,34 @@ exports.getPrescriptions = async (req, res, next) => {
     }
 };
 
+// @desc    Get prescriptions for the logged-in patient
+// @route   GET /my-prescriptions
+// @access  Private (Patient only)
+exports.getPatientPrescriptions = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        const total = await Prescription.countDocuments({ patientId: req.user.id });
+        const prescriptions = await Prescription.find({ patientId: req.user.id })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.status(200).json({
+            success: true,
+            count: prescriptions.length,
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            data: prescriptions,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Search doctors by specialty (public)
 // @route   GET /search
 // @access  Public
@@ -270,6 +298,38 @@ exports.getDoctorAvailability = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
+            data: doctor,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// @desc    Sync verification status from Admin/Auth service
+// @route   PUT /verify-status/:userId
+// @access  Internal (Admin only)
+exports.syncVerificationStatus = async (req, res, next) => {
+    try {
+        const { isVerified } = req.body;
+        const { userId } = req.params;
+
+        // Update the doctor profile’s verification status
+        const doctor = await Doctor.findOneAndUpdate(
+            { userId },
+            { isVerified },
+            { new: true, runValidators: true }
+        );
+
+        if (!doctor) {
+            // It's possible the doctor hasn't created a profile yet, which is fine
+            return res.status(200).json({
+                success: true,
+                message: 'No profile found to update, but status acknowledged',
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Doctor profile verification status updated to ${isVerified}`,
             data: doctor,
         });
     } catch (error) {

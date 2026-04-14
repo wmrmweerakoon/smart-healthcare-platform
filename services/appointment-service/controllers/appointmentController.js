@@ -1,5 +1,8 @@
+const axios = require('axios');
 const { validationResult } = require('express-validator');
 const Appointment = require('../models/Appointment');
+
+const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5003';
 
 // @desc    Book an appointment
 // @route   POST /book
@@ -13,8 +16,54 @@ exports.bookAppointment = async (req, res, next) => {
                 errors: errors.array(),
             });
         }
-
+ 
         const { doctorId, doctorName, date, timeSlot, type, reason } = req.body;
+
+        // NEW: Verify Doctor Availability from Doctor Service
+        try {
+            const doctorAvailabilityRes = await axios.get(`${DOCTOR_SERVICE_URL}/availability/${doctorId}`);
+            const doctor = doctorAvailabilityRes.data.data;
+
+            if (!doctor || !doctor.availability || doctor.availability.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Doctor has not set any availability yet.',
+                });
+            }
+
+            // Check if requested date matches a day the doctor is available
+            const requestedDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+            const daySlots = doctor.availability.filter(slot => slot.day === requestedDay);
+
+            if (daySlots.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Doctor is not available on ${requestedDay}s.`,
+                });
+            }
+
+            // Check if requested time is within at least one of the doctor's slots for that day
+            const isWithinSlot = daySlots.some(slot => 
+                timeSlot.startTime >= slot.startTime && 
+                timeSlot.endTime <= slot.endTime
+            );
+
+            if (!isWithinSlot) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Requested time ${timeSlot.startTime}-${timeSlot.endTime} is outside the doctor's available hours on ${requestedDay}.`,
+                });
+            }
+        } catch (doctorErr) {
+            console.error('Failed to verify doctor availability:', doctorErr.message);
+            // If the service is down, we might want to fail or proceed with caution. 
+            // For now, let's require validation.
+            return res.status(503).json({
+                success: false,
+                message: 'Could not verify doctor availability. The doctor service might be offline.',
+            });
+        }
+
 
         // Validate date is in the future
         const appointmentDate = new Date(date);

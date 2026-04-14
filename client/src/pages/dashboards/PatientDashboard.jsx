@@ -9,6 +9,7 @@ const PatientDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [reports, setReports] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -40,10 +41,11 @@ const PatientDashboard = () => {
     setLoading(true);
     try {
       // Parallel fetch for better performance
-      const [profileRes, reportsRes, prescriptionsRes] = await Promise.all([
+      const [profileRes, reportsRes, prescriptionsRes, appointmentsRes] = await Promise.all([
         API.get('/patient/profile').catch(() => ({ data: { success: false } })),
         API.get('/patient/reports').catch(() => ({ data: { data: [] } })),
-        API.get('/patient/prescriptions').catch(() => ({ data: { data: [] } }))
+        API.get('/doctor/my-prescriptions').catch(() => ({ data: { data: [] } })),
+        API.get('/appointment/my-appointments').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (profileRes.data.success) {
@@ -63,6 +65,7 @@ const PatientDashboard = () => {
 
       setReports(reportsRes.data.data || []);
       setPrescriptions(prescriptionsRes.data.data || []);
+      setAppointments(appointmentsRes.data.data || []);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -142,6 +145,20 @@ const PatientDashboard = () => {
     }
   };
 
+  const startVideoCall = async (appointment) => {
+    try {
+      const res = await API.post('/video/create-session', {
+        appointmentId: appointment._id,
+        doctorId: appointment.doctorId,
+        patientId: appointment.patientId,
+      });
+      const session = res.data.data;
+      window.open(`/video/${session.roomId}`, '_blank');
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to start video call' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -178,6 +195,10 @@ const PatientDashboard = () => {
             onClick={() => setActiveTab('profile')}
           >My Profile</button>
           <button
+            className={`btn btn-sm ${activeTab === 'appointments' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('appointments')}
+          >Appointments</button>
+          <button
             className={`btn btn-sm ${activeTab === 'reports' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('reports')}
           >Medical Reports</button>
@@ -206,13 +227,13 @@ const PatientDashboard = () => {
                 <span className="dashboard-card-stat">{reports.length} Reports</span>
               </div>
 
-              <div className="dashboard-card card" onClick={() => setActiveTab('prescriptions')}>
+              <div className="dashboard-card card" onClick={() => setActiveTab('appointments')}>
                 <div className="dashboard-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" /><line x1="16" y1="8" x2="2" y2="22" /><line x1="17.5" y1="15" x2="9" y2="15" /></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
-                <h3>Prescriptions</h3>
-                <p>View latest prescriptions issued by your doctors</p>
-                <span className="dashboard-card-stat">{prescriptions.length} Records</span>
+                <h3>Appointments</h3>
+                <p>Track your consultation requests and visit history</p>
+                <span className="dashboard-card-stat">{appointments.length} Appointments</span>
               </div>
 
               <div className="dashboard-card card" onClick={() => setActiveTab('profile')}>
@@ -504,6 +525,67 @@ const PatientDashboard = () => {
           </div>
         )}
 
+        {/* Tab Content: APPOINTMENTS */}
+        {activeTab === 'appointments' && (
+          <div className="dashboard-section scale-in">
+            <h2>Track Appointments</h2>
+            <div className="card">
+              {appointments.length > 0 ? (
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Doctor</th>
+                        <th>Specialty</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {appointments.map(apt => (
+                        <tr key={apt._id}>
+                          <td>{new Date(apt.date).toLocaleDateString()}</td>
+                          <td>{apt.timeSlot?.startTime} - {apt.timeSlot?.endTime}</td>
+                          <td style={{ fontWeight: 600 }}>Dr. {apt.doctorName || apt.doctorId}</td>
+                          <td>{apt.specialty || 'Checkup'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span className="status-badge" style={{ 
+                                background: apt.status === 'accepted' ? 'rgba(16,185,129,0.15)' : 
+                                           apt.status === 'pending' ? 'rgba(245,158,11,0.15)' : 
+                                           'rgba(239,68,68,0.15)',
+                                color: apt.status === 'accepted' ? '#10b981' : 
+                                       apt.status === 'pending' ? '#f59e0b' : 
+                                       '#ef4444'
+                              }}>
+                                {apt.status}
+                              </span>
+                              {apt.status === 'accepted' && apt.type === 'video' && (
+                                <button 
+                                  className="btn btn-sm btn-primary" 
+                                  style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+                                  onClick={() => startVideoCall(apt)}
+                                >
+                                  📹 Join Call
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <p style={{ color: 'var(--text-secondary)' }}>No appointments found. Book one from the "Find Doctors" page!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tab Content: PRESCRIPTIONS */}
         {activeTab === 'prescriptions' && (
           <div className="dashboard-section scale-in">
@@ -525,7 +607,7 @@ const PatientDashboard = () => {
                         <tr key={pres._id}>
                           <td>{new Date(pres.date || pres.createdAt).toLocaleDateString()}</td>
                           <td><span style={{ fontWeight: '600' }}>{pres.diagnosis}</span></td>
-                          <td>Dr. {pres.doctorId}</td>
+                          <td>Dr. {pres.doctorName || 'Available soon'}</td>
                           <td>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               {pres.medications?.map((m, i) => (

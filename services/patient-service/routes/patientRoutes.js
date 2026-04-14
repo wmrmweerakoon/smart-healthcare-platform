@@ -16,21 +16,21 @@ const {
     getPrescriptions,
 } = require('../controllers/patientController');
 
-// All routes require authentication and patient role
+// All routes require authentication
 router.use(extractUser);
-router.use(patientOnly);
 
 // Profile routes
-router.get('/profile', getProfile);
-router.put('/profile', profileValidation, updateProfile);
+router.get('/profile', patientOnly, getProfile);
+router.put('/profile', patientOnly, profileValidation, updateProfile);
 
 // Report routes
-router.post('/upload-report', upload.single('report'), reportValidation, uploadReport);
-router.get('/reports', getReports);
-router.get('/reports/:id', getReport);
-router.delete('/reports/:id', deleteReport);
+router.post('/upload-report', patientOnly, upload.single('report'), reportValidation, uploadReport);
+router.get('/reports', patientOnly, getReports);
+router.get('/reports/:id', patientOnly, getReport);
+router.delete('/reports/:id', patientOnly, deleteReport);
 
 // Prescription routes (read-only)
-router.get('/prescriptions', getPrescriptions);
+router.get('/prescriptions', patientOnly, getPrescriptions);
+
 
 module.exports = router;

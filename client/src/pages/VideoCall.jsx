@@ -91,8 +91,12 @@ const VideoCall = () => {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <span className="badge badge-doctor" style={{ fontSize: '0.7rem' }}>
-            {user?.role === 'doctor' ? 'Doctor' : 'Patient'}
+          <span className={`badge ${user?.role === 'doctor' ? 'badge-doctor' : 'badge-patient'}`} style={{ 
+            fontSize: '0.8rem', 
+            padding: '4px 12px',
+            boxShadow: user?.role === 'doctor' ? '0 0 10px rgba(59,130,246,0.3)' : '0 0 10px rgba(139,92,246,0.3)'
+          }}>
+            {user?.role === 'doctor' ? '🩺 DOCTOR VIEW' : '👤 PATIENT VIEW'}
           </span>
           <button
             className="btn btn-danger btn-sm"
@@ -112,7 +116,7 @@ const VideoCall = () => {
       <div style={{ flex: 1, position: 'relative' }}>
         {session?.jitsiUrl && (
           <iframe
-            src={`${session.jitsiUrl}#userInfo.displayName="${encodeURIComponent(user?.name || 'User')}"`}
+            src={`${session.jitsiUrl}#config.prejoinPageEnabled=false&config.startWithVideoMuted=false&config.startWithAudioMuted=false&userInfo.displayName="${encodeURIComponent(user?.name || 'User')}"`}
             style={{
               width: '100%',
               height: '100%',

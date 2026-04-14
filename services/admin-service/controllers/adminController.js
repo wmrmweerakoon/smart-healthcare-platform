@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const axios = require('axios');
 
 // @desc    Get all users
 // @route   GET /users
@@ -46,6 +47,24 @@ exports.verifyDoctor = async (req, res, next) => {
 
         user.isVerified = true;
         await user.save();
+
+        // ─── SYNC WITH DOCTOR SERVICE ──────────────────────────
+        try {
+            const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5003';
+            await axios.put(`${doctorServiceUrl}/verify-status/${user._id}`, {
+                isVerified: true
+            }, {
+                headers: {
+                    'X-User-Id': req.headers['x-user-id'] || 'admin-sync',
+                    'X-User-Role': 'admin'
+                }
+            });
+        } catch (syncErr) {
+            console.error('Failed to sync verification with Doctor Service:', syncErr.message);
+            // We don't fail the whole request because the Auth status IS updated, 
+            // but we log it for troubleshooting.
+        }
+        // ───────────────────────────────────────────────────────
 
         res.status(200).json({ success: true, data: user });
     } catch (err) {
