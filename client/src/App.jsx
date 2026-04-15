@@ -14,6 +14,8 @@ import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import DoctorList from './pages/DoctorList';
 import VideoCall from './pages/VideoCall';
+import SymptomChecker from './pages/SymptomChecker';
+import PaymentPage from './pages/PaymentPage';
 
 const App = () => {
     const { loading } = useAuth();
@@ -82,6 +84,19 @@ const App = () => {
                     element={
                         <ProtectedRoute>
                             <VideoCall />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* AI Symptom Checker (accessible to all) */}
+                <Route path="/symptom-checker" element={<SymptomChecker />} />
+
+                {/* Protected: Payments */}
+                <Route
+                    path="/payments"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentPage />
                         </ProtectedRoute>
                     }
                 />
