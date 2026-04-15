@@ -1,5 +1,6 @@
 const SymptomAnalysis = require('../models/SymptomAnalysis');
 const { analyzeSymptoms, symptomDatabase } = require('../services/symptomEngine');
+const geminiService = require('../services/geminiService');
 
 // @desc    Analyze symptoms and suggest conditions/doctor type
 // @route   POST /analyze-symptoms
@@ -14,8 +15,24 @@ exports.analyzeUserSymptoms = async (req, res, next) => {
             });
         }
 
-        // Run analysis
-        const result = analyzeSymptoms(symptoms, age, gender);
+        let result;
+        let isRealAI = false;
+
+        // Try Real AI (Gemini) first if API Key is configured
+        if (process.env.GOOGLE_AI_KEY) {
+            try {
+                result = await geminiService.analyzeSymptomRealAI(symptoms, age, gender);
+                isRealAI = true;
+                console.log('Analysis performed by Gemini AI');
+            } catch (aiError) {
+                console.error('AI Analysis failed, falling back to rule-based engine:', aiError.message);
+                result = analyzeSymptoms(symptoms, age, gender);
+            }
+        } else {
+            // Fallback to Rule-based engine
+            result = analyzeSymptoms(symptoms, age, gender);
+            console.log('Analysis performed by Rule-based engine');
+        }
 
         // Persist analysis
         const userId = req.headers['x-user-id'] || 'anonymous';
