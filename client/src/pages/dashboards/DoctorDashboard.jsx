@@ -256,11 +256,11 @@ const DoctorDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <div className="tabs-container" style={{ marginBottom: '24px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="tabs-container">
           {['overview', 'profile', 'availability', 'appointments', 'patients', 'prescriptions'].map(tab => (
             <button
               key={tab}
-              className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`}
+              className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
               style={{ textTransform: 'capitalize' }}
             >{tab}</button>

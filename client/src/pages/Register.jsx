@@ -108,7 +108,7 @@ const Register = () => {
                 id="name"
                 name="name"
                 className="form-control"
-                placeholder="John Doe"
+                placeholder="e.g., Alex Smith"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -122,7 +122,7 @@ const Register = () => {
                 id="email"
                 name="email"
                 className="form-control"
-                placeholder="you@example.com"
+                placeholder="e.g., alex.smith@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -136,7 +136,7 @@ const Register = () => {
                 id="password"
                 name="password"
                 className="form-control"
-                placeholder="Min. 6 characters"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 required

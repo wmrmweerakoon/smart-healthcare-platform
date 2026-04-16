@@ -48,24 +48,40 @@
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 24px;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 0.875rem;
-  padding: 7px 14px;
+  font-size: 0.9rem;
+  padding: 8px 4px;
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition: all var(--transition-md);
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--primary-light);
+  transition: all var(--transition-md);
+  transform: translateX(-50%);
 }
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-link:hover::after {
+  width: 100%;
 }
 
 .nav-divider {

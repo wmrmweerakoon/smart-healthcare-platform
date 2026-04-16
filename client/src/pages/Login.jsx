@@ -88,7 +88,7 @@ const Login = () => {
                 id="email"
                 name="email"
                 className="form-control"
-                placeholder="you@example.com"
+                placeholder="e.g., alex.smith@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -102,7 +102,7 @@ const Login = () => {
                 id="password"
                 name="password"
                 className="form-control"
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 required

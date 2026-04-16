@@ -197,25 +197,25 @@ const PatientDashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="tabs-container" style={{ marginBottom: '24px', display: 'flex', gap: '12px' }}>
+        <div className="tabs-container">
           <button
-            className={`btn btn-sm ${activeTab === 'overview' ? 'btn-primary' : 'btn-outline'}`}
+            className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >Overview</button>
           <button
-            className={`btn btn-sm ${activeTab === 'profile' ? 'btn-primary' : 'btn-outline'}`}
+            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >My Profile</button>
           <button
-            className={`btn btn-sm ${activeTab === 'appointments' ? 'btn-primary' : 'btn-outline'}`}
+            className={`tab-btn ${activeTab === 'appointments' ? 'active' : ''}`}
             onClick={() => setActiveTab('appointments')}
           >Appointments</button>
           <button
-            className={`btn btn-sm ${activeTab === 'reports' ? 'btn-primary' : 'btn-outline'}`}
+            className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
           >Medical Reports</button>
           <button
-            className={`btn btn-sm ${activeTab === 'prescriptions' ? 'btn-primary' : 'btn-outline'}`}
+            className={`tab-btn ${activeTab === 'prescriptions' ? 'active' : ''}`}
             onClick={() => setActiveTab('prescriptions')}
           >Prescriptions</button>
         </div>
