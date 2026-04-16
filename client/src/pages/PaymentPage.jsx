@@ -1,26 +1,37 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import './dashboards/DashboardStyles.css';
 
 const PaymentPage = () => {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    
+    // Check for pre-filled data
+    const prefillAppointmentId = searchParams.get('appointmentId');
+    const prefillAmount = searchParams.get('amount');
+
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState({ type: '', text: '' });
-    const [activeTab, setActiveTab] = useState('history');
+    const [activeTab, setActiveTab] = useState(prefillAppointmentId ? 'new' : 'history');
 
     // Payment form state
     const [payForm, setPayForm] = useState({
-        amount: '',
-        description: '',
-        appointmentId: '',
+        amount: prefillAmount || '',
+        description: prefillAppointmentId ? 'Appointment Booking Fee' : '',
+        appointmentId: prefillAppointmentId || '',
     });
     const [paying, setPaying] = useState(false);
 
     useEffect(() => {
         fetchPayments();
-    }, []);
+        if (prefillAppointmentId) {
+            setMessage({ type: 'success', text: 'Please complete the payment for your appointment.' });
+        }
+    }, [prefillAppointmentId]);
 
     const fetchPayments = async () => {
         setLoading(true);
@@ -52,10 +63,19 @@ const PaymentPage = () => {
             });
 
             if (res.data.success) {
-                setMessage({ type: 'success', text: `Payment created! Intent ID: ${res.data.data.stripePaymentIntentId}` });
+                const intentId = res.data.data.stripePaymentIntentId;
+                
+                // Locally verify the payment immediately to simulate a completed card checkout
+                await handleVerifyPayment(intentId);
+
+                setMessage({ type: 'success', text: `Payment completed successfully!` });
                 setPayForm({ amount: '', description: '', appointmentId: '' });
                 fetchPayments();
-                setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+                if (prefillAppointmentId) {
+                    setTimeout(() => navigate('/dashboard'), 2000);
+                } else {
+                    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+                }
             }
         } catch (err) {
             setMessage({ type: 'error', text: err.response?.data?.message || 'Payment failed' });

@@ -1,5 +1,8 @@
+const axios = require('axios');
 const Payment = require('../models/Payment');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
+
+const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:5004';
 
 // @desc    Create a new payment (Stripe PaymentIntent)
 // @route   POST /create-payment
@@ -18,15 +21,24 @@ exports.createPayment = async (req, res, next) => {
         // Create Stripe PaymentIntent
         let paymentIntent;
         try {
-            paymentIntent = await stripe.paymentIntents.create({
-                amount: Math.round(amount * 100), // Stripe uses cents
-                currency: currency || 'usd',
-                metadata: {
-                    patientId: userId,
-                    appointmentId: appointmentId || '',
-                    doctorId: doctorId || '',
-                },
-            });
+            if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder') {
+                paymentIntent = await stripe.paymentIntents.create({
+                    amount: Math.round(amount * 100), // Stripe uses cents
+                    currency: currency || 'usd',
+                    metadata: {
+                        patientId: userId,
+                        appointmentId: appointmentId || '',
+                        doctorId: doctorId || '',
+                    },
+                });
+            } else {
+                // Mock response for local development without a real Stripe key
+                paymentIntent = {
+                    id: 'pi_mock_' + Math.random().toString(36).substr(2, 9),
+                    client_secret: 'secret_mock_' + Math.random().toString(36).substr(2, 9),
+                    status: 'requires_payment_method'
+                };
+            }
         } catch (stripeError) {
             console.error('Stripe Error:', stripeError.message);
             return res.status(502).json({
@@ -81,7 +93,15 @@ exports.verifyPayment = async (req, res, next) => {
         // Retrieve payment intent from Stripe
         let paymentIntent;
         try {
-            paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            if (paymentIntentId.startsWith('pi_mock_')) {
+                // Mock retrieval
+                paymentIntent = {
+                    id: paymentIntentId,
+                    status: 'succeeded' // Simulate a successful payment when verified
+                };
+            } else {
+                paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            }
         } catch (stripeError) {
             console.error('Stripe Error:', stripeError.message);
             return res.status(502).json({
@@ -121,6 +141,18 @@ exports.verifyPayment = async (req, res, next) => {
                 success: false,
                 message: 'Payment record not found',
             });
+        }
+
+        // If payment succeeded and has an appointmentId, update the appointment service
+        if (appStatus === 'completed' && payment.appointmentId) {
+            try {
+                await axios.put(`${APPOINTMENT_SERVICE_URL}/internal/payment-status/${payment.appointmentId}`, {
+                    status: 'paid'
+                });
+            } catch (err) {
+                console.error(`Failed to update appointment payment status for appointment ${payment.appointmentId}:`, err.message);
+                // Do not block the user response, just log the error. In production, a retry mechanism should be used.
+            }
         }
 
         res.status(200).json({

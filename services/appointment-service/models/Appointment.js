@@ -60,6 +60,11 @@ const AppointmentSchema = new mongoose.Schema(
             trim: true,
             maxlength: [2000, 'Notes cannot exceed 2000 characters'],
         },
+        paymentStatus: {
+            type: String,
+            enum: ['pending', 'paid', 'refunded'],
+            default: 'pending',
+        },
     },
     { timestamps: true }
 );

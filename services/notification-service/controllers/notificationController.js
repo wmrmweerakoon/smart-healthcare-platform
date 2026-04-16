@@ -283,6 +283,180 @@ exports.appointmentCompleted = async (req, res, next) => {
     }
 };
 
+// @desc    Trigger notification to doctor for new appointment request
+// @route   POST /doctor-appointment-received
+exports.doctorAppointmentReceived = async (req, res, next) => {
+    try {
+        const { doctorEmail, doctorName, patientName, date, time, doctorId } = req.body;
+
+        if (!doctorEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'doctorEmail is required',
+            });
+        }
+
+        const subject = 'New Appointment Request - HealthCare+';
+        const message = `Dear Dr. ${doctorName || 'Doctor'},\n\nA new appointment request has been booked by ${patientName || 'a patient'}.\n\nDate: ${date || 'TBD'}\nTime: ${time || 'TBD'}\n\nPlease log in to your dashboard to view and accept this request.\n\nBest regards,\nHealthCare+ Team`;
+
+        const notification = await Notification.create({
+            recipientId: doctorId || 'unknown',
+            recipientEmail: doctorEmail,
+            type: 'email',
+            category: 'appointment_booked',
+            subject,
+            message,
+            status: 'pending',
+        });
+
+        try {
+            const result = await sendEmail({
+                to: doctorEmail,
+                subject,
+                text: message,
+            });
+
+            notification.status = 'sent';
+            notification.sentAt = new Date();
+            await notification.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Doctor appointment notification sent',
+            });
+        } catch (emailError) {
+            notification.status = 'failed';
+            notification.errorMessage = emailError.message;
+            await notification.save();
+
+            return res.status(502).json({
+                success: false,
+                message: 'Failed to send notification: ' + emailError.message,
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Trigger notification to doctor for cancelled appointment
+// @route   POST /doctor-appointment-cancelled
+exports.doctorAppointmentCancelled = async (req, res, next) => {
+    try {
+        const { doctorEmail, doctorName, patientName, date, doctorId } = req.body;
+
+        if (!doctorEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'doctorEmail is required',
+            });
+        }
+
+        const subject = 'Appointment Cancelled - HealthCare+';
+        const message = `Dear Dr. ${doctorName || 'Doctor'},\n\nThe appointment requested by ${patientName || 'a patient'} on ${date || 'a specific date'} has been cancelled.\n\nBest regards,\nHealthCare+ Team`;
+
+        const notification = await Notification.create({
+            recipientId: doctorId || 'unknown',
+            recipientEmail: doctorEmail,
+            type: 'email',
+            category: 'appointment_cancelled',
+            subject,
+            message,
+            status: 'pending',
+        });
+
+        try {
+            const result = await sendEmail({
+                to: doctorEmail,
+                subject,
+                text: message,
+            });
+
+            notification.status = 'sent';
+            notification.sentAt = new Date();
+            await notification.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Doctor cancellation notification sent',
+            });
+        } catch (emailError) {
+            notification.status = 'failed';
+            notification.errorMessage = emailError.message;
+            await notification.save();
+
+            return res.status(502).json({
+                success: false,
+                message: 'Failed to send cancellation notification',
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Trigger notification to patient for appointment status update (accepted/rejected)
+// @route   POST /patient-appointment-status-updated
+exports.patientAppointmentStatusUpdated = async (req, res, next) => {
+    try {
+        const { patientEmail, patientName, doctorName, date, status, patientId } = req.body;
+
+        if (!patientEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'patientEmail is required',
+            });
+        }
+
+        const subject = `Appointment ${status.charAt(0).toUpperCase() + status.slice(1)} - HealthCare+`;
+        
+        let message;
+        if (status === 'accepted') {
+            message = `Dear ${patientName || 'Patient'},\n\nGood news! Your appointment with Dr. ${doctorName || 'your doctor'} on ${date || 'a specific date'} has been accepted.\n\nPlease log in to your dashboard to proceed to payment and finalize your slot.\n\nBest regards,\nHealthCare+ Team`;
+        } else {
+            message = `Dear ${patientName || 'Patient'},\n\nWe regret to inform you that Dr. ${doctorName || 'your doctor'} could not accept your appointment request on ${date || 'a specific date'}.\n\nPlease try booking a different time or with another specialist.\n\nBest regards,\nHealthCare+ Team`;
+        }
+
+        const notification = await Notification.create({
+            recipientId: patientId || 'unknown',
+            recipientEmail: patientEmail,
+            type: 'email',
+            category: `appointment_${status}`,
+            subject,
+            message,
+            status: 'pending',
+        });
+
+        try {
+            const result = await sendEmail({
+                to: patientEmail,
+                subject,
+                text: message,
+            });
+
+            notification.status = 'sent';
+            notification.sentAt = new Date();
+            await notification.save();
+
+            res.status(200).json({
+                success: true,
+                message: `Patient ${status} notification sent`,
+            });
+        } catch (emailError) {
+            notification.status = 'failed';
+            notification.errorMessage = emailError.message;
+            await notification.save();
+
+            return res.status(502).json({
+                success: false,
+                message: 'Failed to send status update notification',
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get all notifications (with filters)
 // @route   GET /all
 exports.getAllNotifications = async (req, res, next) => {
@@ -341,6 +515,30 @@ exports.getMyNotifications = async (req, res, next) => {
             pages: Math.ceil(total / limit),
             data: notifications,
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Mark notification as read
+// @route   PUT /read/:id
+exports.markAsRead = async (req, res, next) => {
+    try {
+        const userId = req.headers['x-user-id'];
+        const notification = await Notification.findById(req.params.id);
+
+        if (!notification) {
+            return res.status(404).json({ success: false, message: 'Notification not found' });
+        }
+
+        if (notification.recipientId !== userId && req.headers['x-user-role'] !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Not authorized to read this notification' });
+        }
+
+        notification.isRead = true;
+        await notification.save();
+
+        res.status(200).json({ success: true, data: notification });
     } catch (error) {
         next(error);
     }

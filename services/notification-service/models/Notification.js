@@ -44,6 +44,10 @@ const notificationSchema = new mongoose.Schema(
             enum: ['pending', 'sent', 'failed'],
             default: 'pending',
         },
+        isRead: {
+            type: Boolean,
+            default: false,
+        },
         sentAt: {
             type: Date,
             default: null,
@@ -61,5 +65,6 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ recipientId: 1, createdAt: -1 });
 notificationSchema.index({ category: 1 });
 notificationSchema.index({ status: 1 });
+notificationSchema.index({ isRead: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

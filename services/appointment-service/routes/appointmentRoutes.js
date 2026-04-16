@@ -13,7 +13,11 @@ const {
     rejectAppointment,
     updateStatus,
     getAppointment,
+    updatePaymentStatus,
 } = require('../controllers/appointmentController');
+
+// Internal routes (no auth)
+router.put('/internal/payment-status/:id', updatePaymentStatus);
 
 // All routes require authentication
 router.use(extractUser);

@@ -159,6 +159,18 @@ const PatientDashboard = () => {
     }
   };
 
+  const cancelAppointment = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
+    try {
+      await API.put(`/appointment/cancel/${id}`);
+      setAppointments(appointments.map(apt => apt._id === id ? { ...apt, status: 'cancelled' } : apt));
+      setMessage({ type: 'success', text: 'Appointment cancelled successfully' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to cancel appointment' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -550,7 +562,7 @@ const PatientDashboard = () => {
                           <td style={{ fontWeight: 600 }}>Dr. {apt.doctorName || apt.doctorId}</td>
                           <td>{apt.specialty || 'Checkup'}</td>
                           <td>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                               <span className="status-badge" style={{ 
                                 background: apt.status === 'accepted' ? 'rgba(16,185,129,0.15)' : 
                                            apt.status === 'pending' ? 'rgba(245,158,11,0.15)' : 
@@ -561,6 +573,17 @@ const PatientDashboard = () => {
                               }}>
                                 {apt.status}
                               </span>
+                              
+                              {apt.paymentStatus === 'paid' ? (
+                                <span className="status-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid currentColor' }}>Paid</span>
+                              ) : (
+                                <button
+                                  className="btn btn-sm btn-outline"
+                                  style={{ padding: '2px 8px', fontSize: '0.65rem' }}
+                                  onClick={() => window.location.href = `/payments?appointmentId=${apt._id}&amount=20`}
+                                >Pay Now</button>
+                              )}
+
                               {apt.status === 'accepted' && apt.type === 'video' && (
                                 <button 
                                   className="btn btn-sm btn-primary" 
@@ -568,6 +591,16 @@ const PatientDashboard = () => {
                                   onClick={() => startVideoCall(apt)}
                                 >
                                   📹 Join Call
+                                </button>
+                              )}
+
+                              {(apt.status === 'pending' || apt.status === 'accepted') && (
+                                <button
+                                  className="btn btn-sm btn-outline btn-danger-icon"
+                                  style={{ padding: '4px 10px', fontSize: '0.7rem', color: '#ef4444', borderColor: '#ef4444' }}
+                                  onClick={() => cancelAppointment(apt._id)}
+                                >
+                                  Cancel
                                 </button>
                               )}
                             </div>

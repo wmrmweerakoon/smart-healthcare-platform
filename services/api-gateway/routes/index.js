@@ -176,11 +176,11 @@ const setupRoutes = (app) => {
         })
     );
 
-    // ─── Notification Service (requires authentication, admin only) ──
+    // ─── Notification Service (requires authentication) ──
     app.use(
         '/api/notification',
         verifyToken,
-        roleCheck('admin'),
+        roleCheck('admin', 'doctor', 'patient'),
         createProxyMiddleware({
             target: config.services.notification,
             changeOrigin: true,
@@ -209,6 +209,17 @@ const setupRoutes = (app) => {
             target: config.services.ai,
             changeOrigin: true,
             pathRewrite: { '^/api/ai': '' },
+            on: {
+                proxyReq: (proxyReq, req) => {
+                    // Forward body for POST requests
+                    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+                        const bodyData = JSON.stringify(req.body);
+                        proxyReq.setHeader('Content-Type', 'application/json');
+                        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+                        proxyReq.write(bodyData);
+                    }
+                },
+            },
         })
     );
 

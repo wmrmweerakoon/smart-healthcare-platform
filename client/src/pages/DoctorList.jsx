@@ -75,10 +75,11 @@ const DoctorList = () => {
     setBookingMessage({ type: '', text: '' });
 
     try {
-      await axios.post('/appointment/book', {
+      const res = await axios.post('/appointment/book', {
         doctorId: selectedDoctor.userId,
         doctorName: selectedDoctor.name,
         patientName: user?.name || '',
+        patientEmail: user?.email || '',
         date: bookingForm.date,
         timeSlot: {
           startTime: bookingForm.startTime,
@@ -87,8 +88,17 @@ const DoctorList = () => {
         type: bookingForm.type,
         reason: bookingForm.reason,
       });
-      setBookingMessage({ type: 'success', text: 'Appointment booked successfully! The doctor will review your request.' });
-      setTimeout(() => setShowBooking(false), 2500);
+      
+      const appointmentId = res.data.data._id;
+      const fee = selectedDoctor.consultationFee || 20; // fallback to 20 if none specified
+      
+      setBookingMessage({ type: 'success', text: 'Appointment reserved! Redirecting to payment...' });
+      
+      setTimeout(() => {
+        setShowBooking(false);
+        navigate(`/payments?appointmentId=${appointmentId}&amount=${fee}`);
+      }, 1500);
+      
     } catch (err) {
       setBookingMessage({
         type: 'error',

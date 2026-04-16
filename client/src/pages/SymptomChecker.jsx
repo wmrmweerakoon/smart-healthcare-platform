@@ -215,6 +215,30 @@ const SymptomChecker = () => {
                                     {symptom}
                                 </button>
                             ))}
+                            
+                            {/* Custom Symptom Button */}
+                            {searchTerm && !supportedSymptoms.some(s => s.toLowerCase() === searchTerm.toLowerCase()) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!selectedSymptoms.includes(searchTerm.toLowerCase())) {
+                                            setSelectedSymptoms([...selectedSymptoms, searchTerm.toLowerCase()]);
+                                            setSearchTerm('');
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '20px',
+                                        border: '1px dashed var(--primary)',
+                                        background: 'rgba(102,126,234,0.1)',
+                                        color: 'var(--primary)',
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    ✨ Add custom: "{searchTerm}"
+                                </button>
+                            )}
                         </div>
 
                         <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>

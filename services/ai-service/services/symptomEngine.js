@@ -166,6 +166,54 @@ const symptomDatabase = {
         ],
         specialty: 'Psychiatrist',
     },
+
+    // ─── Systemic & Others ─────────────────────────────
+    chills: {
+        conditions: [
+            { condition: 'Fever', probability: 'High', severity: 'low', description: 'Body temperature spike causing shivering.' },
+            { condition: 'Malaria', probability: 'Low', severity: 'medium', description: 'Mosquito-borne illness causing intense chills and fever.' },
+            { condition: 'Influenza', probability: 'Medium', severity: 'medium', description: 'Viral infection with systemic symptoms.' },
+        ],
+        specialty: 'General Practitioner',
+    },
+    itching: {
+        conditions: [
+            { condition: 'Allergy', probability: 'High', severity: 'low', description: 'Immune response to an allergen.' },
+            { condition: 'Contact Dermatitis', probability: 'Medium', severity: 'low', description: 'Skin irritation from direct contact.' },
+            { condition: 'Hives (Urticaria)', probability: 'Medium', severity: 'low', description: 'Red, itchy welts often from an allergic reaction.' },
+        ],
+        specialty: 'Dermatologist',
+    },
+    'muscle aches': {
+        conditions: [
+            { condition: 'Physical Overexertion', probability: 'High', severity: 'low', description: 'Soreness from muscle use or minor strain.' },
+            { condition: 'Influenza', probability: 'High', severity: 'medium', description: 'Flu often causes body-wide muscle pain.' },
+            { condition: 'Fibromyalgia', probability: 'Low', severity: 'medium', description: 'Chronic condition causing widespread musculoskeletal pain.' },
+        ],
+        specialty: 'Rheumatologist',
+    },
+    'weight loss': {
+        conditions: [
+            { condition: 'Hyperthyroidism', probability: 'Medium', severity: 'medium', description: 'Overactive thyroid increasing calorie burn.' },
+            { condition: 'Diabetes mellitus', probability: 'Medium', severity: 'medium', description: 'High blood sugar causing weight loss despite eating.' },
+            { condition: 'Stress/Anxiety', probability: 'High', severity: 'low', description: 'Psychological factors affecting appetite.' },
+        ],
+        specialty: 'Endocrinologist',
+    },
+    thirst: {
+        conditions: [
+            { condition: 'Dehydration', probability: 'High', severity: 'low', description: 'Insufficient fluid intake or loss.' },
+            { condition: 'Diabetes mellitus', probability: 'Medium', severity: 'medium', description: 'Excessive thirst (polydipsia) is a cardinal sign of diabetes.' },
+        ],
+        specialty: 'Endocrinologist',
+    },
+    sneezing: {
+        conditions: [
+            { condition: 'Allergic Rhinitis', probability: 'High', severity: 'low', description: 'Hay fever or seasonal allergies.' },
+            { condition: 'Common Cold', probability: 'Medium', severity: 'low', description: 'Viral infection of the upper respiratory tract.' },
+        ],
+        specialty: 'ENT Specialist',
+    },
 };
 
 /**

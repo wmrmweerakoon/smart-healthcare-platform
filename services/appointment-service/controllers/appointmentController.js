@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const Appointment = require('../models/Appointment');
 
 const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5003';
+const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:5006';
 
 // @desc    Book an appointment
 // @route   POST /book
@@ -142,6 +143,26 @@ exports.bookAppointment = async (req, res, next) => {
             status: 'pending',
         });
 
+        // Trigger notification asynchronously
+        axios.post(`${NOTIFICATION_SERVICE_URL}/appointment-booked`, {
+            patientId: req.user.id,
+            patientEmail: req.body.patientEmail || 'patient@example.com',
+            patientName: req.body.patientName || '',
+            doctorName: doctorName || '',
+            date: appointmentDate.toISOString().split('T')[0],
+            time: `${timeSlot.startTime} - ${timeSlot.endTime}`
+        }).catch(err => console.error('Failed to send booked notification (patient):', err.message));
+
+        // Trigger notification for DOCTOR synchronously
+        axios.post(`${NOTIFICATION_SERVICE_URL}/doctor-appointment-received`, {
+            doctorId: doctorId,
+            doctorEmail: 'doctor@example.com', // Using placeholder since we don't strictly have doctor's email here
+            doctorName: doctorName || '',
+            patientName: req.body.patientName || '',
+            date: appointmentDate.toISOString().split('T')[0],
+            time: `${timeSlot.startTime} - ${timeSlot.endTime}`
+        }).catch(err => console.error('Failed to send booked notification (doctor):', err.message));
+
         res.status(201).json({
             success: true,
             message: 'Appointment booked successfully',
@@ -238,6 +259,17 @@ exports.cancelAppointment = async (req, res, next) => {
         appointment.status = 'cancelled';
         await appointment.save();
 
+        // If a patient cancelled, notify the doctor
+        if (req.user.role === 'patient') {
+            axios.post(`${NOTIFICATION_SERVICE_URL}/doctor-appointment-cancelled`, {
+                doctorId: appointment.doctorId,
+                doctorEmail: 'doctor@example.com',
+                doctorName: appointment.doctorName || 'Doctor',
+                patientName: appointment.patientName || 'Patient',
+                date: appointment.date.toISOString().split('T')[0]
+            }).catch(err => console.error('Failed to send doctor cancellation notification:', err.message));
+        }
+
         res.status(200).json({
             success: true,
             message: 'Appointment cancelled successfully',
@@ -283,6 +315,16 @@ exports.acceptAppointment = async (req, res, next) => {
         }
         await appointment.save();
 
+        // Notify patient
+        axios.post(`${NOTIFICATION_SERVICE_URL}/patient-appointment-status-updated`, {
+            patientId: appointment.patientId,
+            patientEmail: 'patient@example.com', // Placeholder unless fetched
+            patientName: appointment.patientName || 'Patient',
+            doctorName: appointment.doctorName || 'Doctor',
+            date: appointment.date.toISOString().split('T')[0],
+            status: 'accepted'
+        }).catch(err => console.error('Failed to send accepted notification:', err.message));
+
         res.status(200).json({
             success: true,
             message: 'Appointment accepted',
@@ -326,6 +368,16 @@ exports.rejectAppointment = async (req, res, next) => {
             appointment.notes = req.body.notes;
         }
         await appointment.save();
+
+        // Notify patient
+        axios.post(`${NOTIFICATION_SERVICE_URL}/patient-appointment-status-updated`, {
+            patientId: appointment.patientId,
+            patientEmail: 'patient@example.com',
+            patientName: appointment.patientName || 'Patient',
+            doctorName: appointment.doctorName || 'Doctor',
+            date: appointment.date.toISOString().split('T')[0],
+            status: 'rejected'
+        }).catch(err => console.error('Failed to send rejected notification:', err.message));
 
         res.status(200).json({
             success: true,
@@ -388,6 +440,18 @@ exports.updateStatus = async (req, res, next) => {
         if (notes) appointment.notes = notes;
         await appointment.save();
 
+        if (status === 'completed') {
+            // Fetch patient email if we had it, or pass a placeholder (ideally you'd fetch user from patient-service)
+            // For now we assume the patient will check their dashboard, but let's try to notify them
+            axios.post(`${NOTIFICATION_SERVICE_URL}/appointment-completed`, {
+                patientId: appointment.patientId,
+                patientEmail: 'patient@example.com', // Without fetching patient-service, we send placeholder
+                patientName: appointment.patientName || 'Patient',
+                doctorName: appointment.doctorName || 'Doctor',
+                date: appointment.date.toISOString().split('T')[0]
+            }).catch(err => console.error('Failed to send completed notification:', err.message));
+        }
+
         res.status(200).json({
             success: true,
             message: 'Appointment status updated',
@@ -426,6 +490,36 @@ exports.getAppointment = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
+            data: appointment,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update appointment payment status
+// @route   PUT /internal/payment-status/:id
+// @access  Internal (Service to Service)
+exports.updatePaymentStatus = async (req, res, next) => {
+    try {
+        const appointment = await Appointment.findById(req.params.id);
+
+        if (!appointment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Appointment not found',
+            });
+        }
+
+        const { status } = req.body;
+        if (status) {
+            appointment.paymentStatus = status;
+            await appointment.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Payment status updated successfully',
             data: appointment,
         });
     } catch (error) {

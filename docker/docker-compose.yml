@@ -216,6 +216,7 @@ services:
     environment:
       - PORT=5007
       - MONGO_URI=mongodb://mongodb:27017/healthcare-ai
+      - GOOGLE_AI_KEY=AIzaSyBHu6Wx3W077B6R6TeHAR_cUI3pVyPUfOo
     depends_on:
       - mongodb
     networks:
