@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const axios = require('axios');
+const axiosClient = require('../utils/axiosClient');
 
 // @desc    Get all users
 // @route   GET /users
@@ -51,7 +51,7 @@ exports.verifyDoctor = async (req, res, next) => {
         // ─── SYNC WITH DOCTOR SERVICE ──────────────────────────
         try {
             const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5003';
-            await axios.put(`${doctorServiceUrl}/verify-status/${user._id}`, {
+            await axiosClient.put(`${doctorServiceUrl}/verify-status/${user._id}`, {
                 isVerified: true
             }, {
                 headers: {
@@ -61,8 +61,6 @@ exports.verifyDoctor = async (req, res, next) => {
             });
         } catch (syncErr) {
             console.error('Failed to sync verification with Doctor Service:', syncErr.message);
-            // We don't fail the whole request because the Auth status IS updated, 
-            // but we log it for troubleshooting.
         }
         // ───────────────────────────────────────────────────────
 
@@ -72,36 +70,52 @@ exports.verifyDoctor = async (req, res, next) => {
     }
 };
 
-// @desc    Get all appointments (Mock)
+// @desc    Get all appointments
 // @route   GET /appointments
 // @access  Private (Admin Only)
 exports.getAppointments = async (req, res, next) => {
     try {
-        // Placeholder for Member 3/4's appointment service
-        res.status(200).json({
-            success: true,
-            message: 'Appointment management belongs to Member 3/4. Returning empty list.',
-            count: 0,
-            data: [],
+        const appointmentServiceUrl = process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:5004';
+        const page = req.query.page || 1;
+        const limit = req.query.limit || 20;
+
+        const response = await axiosClient.get(`${appointmentServiceUrl}/my-appointments?page=${page}&limit=${limit}`, {
+            headers: {
+                'X-User-Role': 'admin',
+                'X-User-Id': req.headers['x-user-id'] || 'admin'
+            }
         });
+
+        res.status(200).json(response.data);
     } catch (err) {
+        if (err.response) {
+            return res.status(err.response.status).json(err.response.data);
+        }
         next(err);
     }
 };
 
-// @desc    Get all payments (Mock)
+// @desc    Get all payments
 // @route   GET /payments
 // @access  Private (Admin Only)
 exports.getPayments = async (req, res, next) => {
     try {
-        // Placeholder for Member 4's payment service
-        res.status(200).json({
-            success: true,
-            message: 'Payment management belongs to Member 4. Returning empty list.',
-            count: 0,
-            data: [],
+        const paymentServiceUrl = process.env.PAYMENT_SERVICE_URL || 'http://payment-service:5005';
+        const page = req.query.page || 1;
+        const limit = req.query.limit || 20;
+
+        const response = await axiosClient.get(`${paymentServiceUrl}/all?page=${page}&limit=${limit}`, {
+            headers: {
+                'X-User-Role': 'admin',
+                'X-User-Id': req.headers['x-user-id'] || 'admin'
+            }
         });
+
+        res.status(200).json(response.data);
     } catch (err) {
+        if (err.response) {
+            return res.status(err.response.status).json(err.response.data);
+        }
         next(err);
     }
 };

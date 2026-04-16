@@ -104,6 +104,8 @@ services:
       - PORT=5008
       - MONGO_URI=mongodb://mongodb:27017/healthcare-auth
       - JWT_SECRET=healthcare_jwt_secret_key_2024
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:5004
+      - PAYMENT_SERVICE_URL=http://payment-service:5005
     depends_on:
       - mongodb
     networks:

@@ -7,23 +7,32 @@ import './DashboardStyles.css';
 const AdminDashboard = () => {
     const { user } = useAuth();
     const [users, setUsers] = useState([]);
+    const [appointments, setAppointments] = useState([]);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetchUsers();
+        fetchData();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('/admin/users');
-            setUsers(res.data.data || []);
+            const [usersRes, aptsRes, paymentsRes] = await Promise.all([
+                axios.get('/admin/users'),
+                axios.get('/admin/appointments').catch(e => ({ data: { data: [] } })),
+                axios.get('/admin/payments').catch(e => ({ data: { data: [] } }))
+            ]);
+            
+            setUsers(usersRes.data.data || []);
+            setAppointments(aptsRes.data.data || []);
+            setPayments(paymentsRes.data.data || []);
             setError(null);
         } catch (err) {
-            console.error('Error fetching users:', err);
-            setError('Failed to load system users. Please check if the Admin Service is running.');
+            console.error('Error fetching admin data:', err);
+            setError('Failed to load system data. Please check if the Admin Service is running.');
         } finally {
             setLoading(false);
         }
@@ -207,6 +216,96 @@ const AdminDashboard = () => {
                                             <tr>
                                                 <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
                                                     No doctors currently pending verification.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Appointments Section */}
+                        <div className="dashboard-section">
+                            <h2>Platform Appointments</h2>
+                            <div className="card admin-table-container">
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Patient</th>
+                                            <th>Doctor</th>
+                                            <th>Date & Time</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {appointments.map((apt) => (
+                                            <tr key={apt._id}>
+                                                <td style={{ fontWeight: 600 }}>{apt.patientName || 'N/A'}</td>
+                                                <td>Dr. {apt.doctorName || 'N/A'}</td>
+                                                <td>{new Date(apt.date).toLocaleDateString()} {apt.timeSlot?.startTime} - {apt.timeSlot?.endTime}</td>
+                                                <td>
+                                                    <span className={`badge badge-${apt.type === 'video' ? 'admin' : 'patient'}`}>
+                                                        {apt.type}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className={`status-badge status-${apt.status}`}>
+                                                        {apt.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {appointments.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
+                                                    No appointments recorded on the platform.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Payments Section */}
+                        <div className="dashboard-section">
+                            <h2>Platform Transactions (Payments)</h2>
+                            <div className="card admin-table-container">
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Transaction ID</th>
+                                            <th>Amount</th>
+                                            <th>Method</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {payments.map((payment) => (
+                                            <tr key={payment._id}>
+                                                <td style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{payment._id}</td>
+                                                <td style={{ fontWeight: 600, color: '#312e81' }}>
+                                                    ${(payment.amount).toFixed(2)} {payment.currency?.toUpperCase() || 'USD'}
+                                                </td>
+                                                <td>
+                                                    <span className="badge badge-admin">
+                                                        {payment.paymentMethod || 'Stripe'}
+                                                    </span>
+                                                </td>
+                                                <td>{new Date(payment.createdAt).toLocaleDateString()}</td>
+                                                <td>
+                                                    <span className={`status-badge status-${payment.status}`}>
+                                                        {payment.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {payments.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
+                                                    No financial transactions recorded.
                                                 </td>
                                             </tr>
                                         )}
