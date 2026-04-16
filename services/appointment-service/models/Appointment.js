@@ -20,6 +20,11 @@ const AppointmentSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        specialty: {
+            type: String,
+            trim: true,
+        },
+
         date: {
             type: Date,
             required: [true, 'Appointment date is required'],

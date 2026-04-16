@@ -32,6 +32,8 @@ const PatientDashboard = () => {
     description: ''
   });
   const fileInputRef = useRef(null);
+  const [isRescheduling, setIsRescheduling] = useState(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ date: '', startTime: '', endTime: '' });
 
   useEffect(() => {
     fetchDashboardData();
@@ -168,6 +170,29 @@ const PatientDashboard = () => {
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to cancel appointment' });
+    }
+  };
+
+  const handleReschedule = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const res = await API.put(`/appointment/${isRescheduling._id}`, {
+        date: rescheduleForm.date,
+        timeSlot: {
+          startTime: rescheduleForm.startTime,
+          endTime: rescheduleForm.endTime || rescheduleForm.startTime // Default if end time not provided
+        }
+      });
+      
+      setAppointments(appointments.map(apt => apt._id === isRescheduling._id ? res.data.data : apt));
+      setMessage({ type: 'success', text: 'Appointment rescheduled successfully!' });
+      setIsRescheduling(null);
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Rescheduling failed' });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -541,7 +566,59 @@ const PatientDashboard = () => {
         {activeTab === 'appointments' && (
           <div className="dashboard-section scale-in">
             <h2>Track Appointments</h2>
+            
+            {isRescheduling && (
+              <div className="card scale-in" style={{ marginBottom: '20px', border: '1px solid #3b82f6', background: '#eff6ff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e40af' }}>🔄 Reschedule Appointment</h3>
+                  <button className="btn-icon" onClick={() => setIsRescheduling(null)}>✕</button>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#1e40af', marginBottom: '15px' }}>
+                  Modifying appointment with <strong>Dr. {isRescheduling.doctorName}</strong>
+                </p>
+                <form onSubmit={handleReschedule} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#1e40af' }}>New Date</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      required 
+                      value={rescheduleForm.date}
+                      onChange={(e) => setRescheduleForm({ ...rescheduleForm, date: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#1e40af' }}>New Start Time</label>
+                    <input 
+                      type="time" 
+                      className="form-control" 
+                      required 
+                      value={rescheduleForm.startTime}
+                      onChange={(e) => setRescheduleForm({ ...rescheduleForm, startTime: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#1e40af' }}>New End Time</label>
+                    <input 
+                      type="time" 
+                      className="form-control" 
+                      required 
+                      value={rescheduleForm.endTime}
+                      onChange={(e) => setRescheduleForm({ ...rescheduleForm, endTime: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={actionLoading}>
+                      {actionLoading ? 'Updating...' : 'Confirm Change'}
+                    </button>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setIsRescheduling(null)}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             <div className="card">
+
               {appointments.length > 0 ? (
                 <div className="admin-table-container">
                   <table className="admin-table">
@@ -552,8 +629,10 @@ const PatientDashboard = () => {
                         <th>Doctor</th>
                         <th>Specialty</th>
                         <th>Status</th>
+                        <th>Management Actions</th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {appointments.map(apt => (
                         <tr key={apt._id}>
@@ -562,49 +641,73 @@ const PatientDashboard = () => {
                           <td style={{ fontWeight: 600 }}>Dr. {apt.doctorName || apt.doctorId}</td>
                           <td>{apt.specialty || 'Checkup'}</td>
                           <td>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                              <span className="status-badge" style={{ 
-                                background: apt.status === 'accepted' ? 'rgba(16,185,129,0.15)' : 
-                                           apt.status === 'pending' ? 'rgba(245,158,11,0.15)' : 
-                                           'rgba(239,68,68,0.15)',
-                                color: apt.status === 'accepted' ? '#10b981' : 
-                                       apt.status === 'pending' ? '#f59e0b' : 
-                                       '#ef4444'
-                              }}>
-                                {apt.status}
-                              </span>
-                              
+                            <span className="status-badge" style={{ 
+                              background: apt.status === 'accepted' ? 'rgba(16,185,129,0.15)' : 
+                                         apt.status === 'pending' ? 'rgba(245,158,11,0.15)' : 
+                                         'rgba(239,68,68,0.15)',
+                              color: apt.status === 'accepted' ? '#10b981' : 
+                                     apt.status === 'pending' ? '#f59e0b' : 
+                                     '#ef4444',
+                              display: 'inline-block',
+                              minWidth: '85px',
+                              textAlign: 'center'
+                            }}>
+                              {apt.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                              {/* Payment Action */}
                               {apt.paymentStatus === 'paid' ? (
-                                <span className="status-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid currentColor' }}>Paid</span>
+                                <span className="status-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid currentColor', fontSize: '0.65rem', padding: '2px 6px' }}>Paid</span>
                               ) : (
                                 <button
                                   className="btn btn-sm btn-outline"
-                                  style={{ padding: '2px 8px', fontSize: '0.65rem' }}
+                                  style={{ padding: '4px 10px', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
                                   onClick={() => window.location.href = `/payments?appointmentId=${apt._id}&amount=20`}
-                                >Pay Now</button>
+                                >💳 Pay Now</button>
                               )}
 
+                              {/* Telemedicine Action */}
                               {apt.status === 'accepted' && apt.type === 'video' && (
                                 <button 
                                   className="btn btn-sm btn-primary" 
-                                  style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+                                  style={{ padding: '4px 10px', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
                                   onClick={() => startVideoCall(apt)}
                                 >
                                   📹 Join Call
                                 </button>
                               )}
 
+                              {/* Modification Action */}
                               {(apt.status === 'pending' || apt.status === 'accepted') && (
-                                <button
-                                  className="btn btn-sm btn-outline btn-danger-icon"
-                                  style={{ padding: '4px 10px', fontSize: '0.7rem', color: '#ef4444', borderColor: '#ef4444' }}
-                                  onClick={() => cancelAppointment(apt._id)}
-                                >
-                                  Cancel
-                                </button>
+                                <>
+                                  <button
+                                    className="btn btn-sm btn-outline"
+                                    style={{ padding: '4px 10px', fontSize: '0.7rem', color: '#1e40af', borderColor: '#1e40af', whiteSpace: 'nowrap' }}
+                                    onClick={() => {
+                                      setIsRescheduling(apt);
+                                      setRescheduleForm({
+                                        date: apt.date.split('T')[0],
+                                        startTime: apt.timeSlot?.startTime || '',
+                                        endTime: apt.timeSlot?.endTime || ''
+                                      });
+                                    }}
+                                  >
+                                    🕒 Modify
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline btn-danger-icon"
+                                    style={{ padding: '4px 10px', fontSize: '0.7rem', color: '#ef4444', borderColor: '#ef4444', whiteSpace: 'nowrap' }}
+                                    onClick={() => cancelAppointment(apt._id)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>
+
                         </tr>
                       ))}
                     </tbody>

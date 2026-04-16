@@ -37,3 +37,18 @@ exports.statusValidation = [
         .isLength({ max: 2000 })
         .withMessage('Notes cannot exceed 2000 characters'),
 ];
+
+// Validation rules for rescheduling/update
+exports.updateValidation = [
+    body('date')
+        .notEmpty()
+        .withMessage('Date is required')
+        .isISO8601()
+        .withMessage('Date must be a valid date format'),
+    body('timeSlot.startTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('Start time must be in HH:MM format'),
+    body('timeSlot.endTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('End time must be in HH:MM format'),
+];

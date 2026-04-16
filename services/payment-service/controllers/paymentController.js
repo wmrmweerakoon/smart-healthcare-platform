@@ -252,3 +252,37 @@ exports.getPaymentById = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get payment analytics for admin
+// @route   GET /analytics
+exports.getAnalytics = async (req, res, next) => {
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const dailyRevenue = await Payment.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: sevenDaysAgo },
+                    status: 'completed'
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    total: { $sum: "$amount" }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: dailyRevenue
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+

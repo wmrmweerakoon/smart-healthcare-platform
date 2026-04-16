@@ -6,7 +6,16 @@ const {
     getMe,
     registerValidation,
     loginValidation,
+    adminCreateUser,
+    updateExistingUser,
 } = require('../controllers/authController');
+
+// ... existing routes ...
+
+// Internal Admin routes
+router.post('/internal/admin/create-user', adminCreateUser);
+router.put('/internal/admin/update-user/:id', updateExistingUser);
+
 const { protect } = require('../middleware/auth');
 
 // Public routes

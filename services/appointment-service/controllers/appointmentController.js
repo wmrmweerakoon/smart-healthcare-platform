@@ -5,6 +5,40 @@ const Appointment = require('../models/Appointment');
 const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5003';
 const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:5006';
 
+// Helper to check for appointment conflicts
+const checkConflicts = async (doctorId, patientId, date, timeSlot, excludeId = null) => {
+    const appointmentDate = new Date(date);
+    const startOfDay = new Date(appointmentDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(appointmentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const baseQuery = {
+        date: { $gte: startOfDay, $lte: endOfDay },
+        status: { $in: ['pending', 'accepted'] },
+        $or: [
+            {
+                'timeSlot.startTime': { $lt: timeSlot.endTime },
+                'timeSlot.endTime': { $gt: timeSlot.startTime },
+            },
+        ],
+    };
+
+    if (excludeId) {
+        baseQuery._id = { $ne: excludeId };
+    }
+
+    // Check doctor conflict
+    const doctorConflict = await Appointment.findOne({ ...baseQuery, doctorId });
+    if (doctorConflict) return { conflict: true, message: 'This time slot is already booked for this doctor. Please choose a different time.' };
+
+    // Check patient conflict
+    const patientConflict = await Appointment.findOne({ ...baseQuery, patientId });
+    if (patientConflict) return { conflict: true, message: 'You already have another appointment during this time slot.' };
+
+    return { conflict: false };
+};
+
 // @desc    Book an appointment
 // @route   POST /book
 // @access  Private (Patient)
@@ -57,8 +91,6 @@ exports.bookAppointment = async (req, res, next) => {
             }
         } catch (doctorErr) {
             console.error('Failed to verify doctor availability:', doctorErr.message);
-            // If the service is down, we might want to fail or proceed with caution. 
-            // For now, let's require validation.
             return res.status(503).json({
                 success: false,
                 message: 'Could not verify doctor availability. The doctor service might be offline.',
@@ -86,48 +118,12 @@ exports.bookAppointment = async (req, res, next) => {
             });
         }
 
-        // Check for double booking — same doctor, same date, overlapping time
-        const startOfDay = new Date(appointmentDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(appointmentDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        const existingAppointment = await Appointment.findOne({
-            doctorId,
-            date: { $gte: startOfDay, $lte: endOfDay },
-            status: { $in: ['pending', 'accepted'] },
-            $or: [
-                {
-                    'timeSlot.startTime': { $lt: timeSlot.endTime },
-                    'timeSlot.endTime': { $gt: timeSlot.startTime },
-                },
-            ],
-        });
-
-        if (existingAppointment) {
+        // Check for conflicts
+        const conflictCheck = await checkConflicts(doctorId, req.user.id, date, timeSlot);
+        if (conflictCheck.conflict) {
             return res.status(409).json({
                 success: false,
-                message: 'This time slot is already booked. Please choose a different time.',
-            });
-        }
-
-        // Check if patient already has an appointment at the same time
-        const patientConflict = await Appointment.findOne({
-            patientId: req.user.id,
-            date: { $gte: startOfDay, $lte: endOfDay },
-            status: { $in: ['pending', 'accepted'] },
-            $or: [
-                {
-                    'timeSlot.startTime': { $lt: timeSlot.endTime },
-                    'timeSlot.endTime': { $gt: timeSlot.startTime },
-                },
-            ],
-        });
-
-        if (patientConflict) {
-            return res.status(409).json({
-                success: false,
-                message: 'You already have an appointment at this time.',
+                message: conflictCheck.message,
             });
         }
 
@@ -142,6 +138,7 @@ exports.bookAppointment = async (req, res, next) => {
             reason: reason || '',
             status: 'pending',
         });
+
 
         // Trigger notification asynchronously
         axios.post(`${NOTIFICATION_SERVICE_URL}/appointment-booked`, {
@@ -526,3 +523,175 @@ exports.updatePaymentStatus = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Update/Reschedule an appointment
+// @route   PUT /:id
+// @access  Private (Patient or Doctor)
+exports.updateAppointment = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array(),
+            });
+        }
+
+        const appointment = await Appointment.findById(req.params.id);
+
+        if (!appointment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Appointment not found',
+            });
+        }
+
+        // Verify ownership/permission
+        if (
+            appointment.patientId !== req.user.id &&
+            appointment.doctorId !== req.user.id &&
+            req.user.role !== 'admin'
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to reschedule this appointment',
+            });
+        }
+
+        // Can only reschedule pending or accepted appointments
+        if (!['pending', 'accepted'].includes(appointment.status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot reschedule an appointment with status '${appointment.status}'`,
+            });
+        }
+
+        const { date, timeSlot } = req.body;
+
+        // Verify Doctor Availability if time/date changed
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        const oldDateStr = appointment.date.toISOString().split('T')[0];
+        
+        if (dateStr !== oldDateStr || timeSlot.startTime !== appointment.timeSlot.startTime) {
+             try {
+                const doctorAvailabilityRes = await axios.get(`${DOCTOR_SERVICE_URL}/availability/${appointment.doctorId}`);
+                const doctor = doctorAvailabilityRes.data.data;
+
+                const requestedDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+                const daySlots = (doctor.availability || []).filter(slot => slot.day === requestedDay);
+
+                if (daySlots.length === 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Doctor is not available on ${requestedDay}s.`,
+                    });
+                }
+
+                const isWithinSlot = daySlots.some(slot => 
+                    timeSlot.startTime >= slot.startTime && 
+                    timeSlot.endTime <= slot.endTime
+                );
+
+                if (!isWithinSlot) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Requested time ${timeSlot.startTime}-${timeSlot.endTime} is outside the doctor's available hours.`,
+                    });
+                }
+            } catch (err) {
+                console.error('Availability check failed during reschedule:', err.message);
+            }
+        }
+
+        // Check for conflicts (excluding this appointment)
+        const conflictCheck = await checkConflicts(appointment.doctorId, appointment.patientId, date, timeSlot, appointment._id);
+        if (conflictCheck.conflict) {
+            return res.status(409).json({
+                success: false,
+                message: conflictCheck.message,
+            });
+        }
+
+        appointment.date = new Date(date);
+        appointment.timeSlot = timeSlot;
+        
+        await appointment.save();
+
+        // Notify parties
+        const notificationData = {
+            patientId: appointment.patientId,
+            patientEmail: 'patient@example.com',
+            patientName: appointment.patientName || 'Patient',
+            doctorName: appointment.doctorName || 'Doctor',
+            date: dateStr,
+            status: 'rescheduled'
+        };
+
+        axios.post(`${NOTIFICATION_SERVICE_URL}/patient-appointment-status-updated`, notificationData)
+            .catch(err => console.error('Failed to send reschedule notification:', err.message));
+
+        res.status(200).json({
+            success: true,
+            message: 'Appointment rescheduled successfully',
+            data: appointment,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get appointment analytics for admin
+// @route   GET /analytics
+// @access  Private (Admin Only)
+exports.getAnalytics = async (req, res, next) => {
+    try {
+        // Daily appointments for the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const dailyStats = await Appointment.aggregate([
+            {
+                $match: {
+                    date: { $gte: sevenDaysAgo },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        // Specialty distribution
+        const specialtyStats = await Appointment.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: { $ifNull: ["$specialty", "General"] },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "count": -1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                daily: dailyStats,
+                specialty: specialtyStats
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+

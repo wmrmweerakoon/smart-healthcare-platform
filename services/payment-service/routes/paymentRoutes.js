@@ -6,7 +6,12 @@ const {
     getMyPayments,
     getAllPayments,
     getPaymentById,
+    getAnalytics,
 } = require('../controllers/paymentController');
+
+// GET /analytics (Admin)
+router.get('/analytics', getAnalytics);
+
 
 // POST /create-payment  — Create a new payment intent
 router.post('/create-payment', createPayment);

@@ -130,3 +130,60 @@ const sendTokenResponse = (user, statusCode, res) => {
         },
     });
 };
+
+// @desc    Admin Create User (Internal)
+// @route   POST /internal/admin/create-user
+exports.adminCreateUser = async (req, res, next) => {
+    try {
+        const { name, email, password, role } = req.body;
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+
+        const user = await User.create({
+            name,
+            email,
+            password: password || 'Welcome123!', // Default password
+            role: role || 'patient',
+            isVerified: true // Auto-verify if admin creates them
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            data: { id: user._id, name, email, role }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Update User Details (Admin/Self)
+// @route   PUT /internal/admin/update-user/:id
+exports.updateExistingUser = async (req, res, next) => {
+    try {
+        const { name, email, role, isVerified } = req.body;
+        
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (role) user.role = role;
+        if (typeof isVerified !== 'undefined') user.isVerified = isVerified;
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
