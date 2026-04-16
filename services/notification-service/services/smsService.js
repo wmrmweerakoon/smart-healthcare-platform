@@ -1,43 +1,63 @@
+const twilio = require('twilio');
+
 /**
- * Mock SMS Service
- * 
- * DESIGN FOR SCALE:
- * This service is currently a mock implementation as per the development requirements.
- * It is architected to be easily swappable with a production-grade provider.
- * 
- * RECOMMENDED PROVIDERS:
- * - Twilio (Global)
- * - Vonage / Nexmo (Global)
- * - Dialog / Mobitel SMS Gateways (Regional - SL)
- * 
- * INTEGRATION STEPS:
- * 1. Install provider SDK (e.g., `npm install twilio`)
- * 2. Add API credentials to .env (ACCOUNT_SID, AUTH_TOKEN, etc.)
- * 3. Replace the log logic in `sendSMS` with the SDK call.
+ * Sends SMS via Twilio or falls back to Mock log if credentials are missing.
  */
-
 const sendSMS = async ({ to, message }) => {
-    // PRE-PROCESSING: Ensure 'to' is in E.164 format if needed
-    
-    // Simulate sending SMS via console log (Production Simulation)
-    console.log('\n📱 [SMS GATEWAY SIMULATION]');
-    console.log(`| TO:      ${to}`);
-    console.log(`| MESSAGE: ${message}`);
-    console.log(`| STATUS:  Delivered (Simulated)`);
-    console.log(`| PROVIDER: Mock-Internal-Gateway\n`);
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromPhone = process.env.TWILIO_PHONE_NUMBER;
 
-    // Simulate network latency (150ms - 300ms)
-    const latency = Math.floor(Math.random() * 150) + 150;
-    await new Promise((resolve) => setTimeout(resolve, latency));
+    if (accountSid && authToken && fromPhone) {
+        try {
+            const client = twilio(accountSid, authToken);
+            const result = await client.messages.create({
+                body: message,
+                from: fromPhone,
+                to: to
+            });
 
-    return {
-        success: true,
-        provider: 'mock',
-        deliveryStatus: 'delivered',
-        timestamp: new Date().toISOString(),
-        to,
-        messageId: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    };
+            console.log(`[SMS] Real SMS sent to ${to} via Twilio. SID: ${result.sid}`);
+            return {
+                success: true,
+                provider: 'twilio',
+                deliveryStatus: 'sent',
+                timestamp: new Date().toISOString(),
+                to,
+                messageId: result.sid,
+            };
+        } catch (err) {
+            console.error('[SMS] Twilio sending failed:', err.message);
+            throw new Error(`Twilio error: ${err.message}`);
+        }
+    } else {
+        // High-Fidelity Professional Mock Fallback
+        const timestamp = new Date().toLocaleString();
+        const messageId = `msg_${Math.random().toString(36).substring(2, 11)}`;
+
+        console.log('\n' + '='.repeat(60));
+        console.log('🚀 [NOTIF-GATEWAY] OUTBOUND SMS SIMULATION');
+        console.log('-'.repeat(60));
+        console.log(`| ID:        ${messageId}`);
+        console.log(`| TIMESTAMP: ${timestamp}`);
+        console.log(`| DEST:      ${to}`);
+        console.log(`| CARRIER:   Virtual-Healthcare-Net`);
+        console.log(`| CONTENT:   "${message}"`);
+        console.log('-'.repeat(60));
+        console.log(`| STATUS:    ✅ DELIVERED (Simulated)`);
+        console.log('='.repeat(60) + '\n');
+ 
+        return {
+            success: true,
+            provider: 'simulation-suite',
+            deliveryStatus: 'delivered',
+            timestamp: new Date().toISOString(),
+            to,
+            messageId,
+        };
+
+    }
 };
 
 module.exports = { sendSMS };
+

@@ -47,9 +47,19 @@ const sendEmail = async ({ to, subject, text, html }) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
+ 
+    // High-Fidelity Simulation Log for Presentation
+    console.log('\n' + '📫'.repeat(30));
+    console.log('📧 [OUTBOUND EMAIL SIMULATION]');
+    console.log(`| TO:      ${to}`);
+    console.log(`| SUBJECT: ${subject}`);
+    console.log(`| TIME:    ${new Date().toLocaleString()}`);
+    console.log(`| STATUS:  SENT (Transporter: ${transporter.options.host})`);
+    console.log('📫'.repeat(30) + '\n');
 
     // For Ethereal, log preview URL
     const previewUrl = nodemailer.getTestMessageUrl(info);
+
     if (previewUrl) {
         console.log('Preview URL:', previewUrl);
     }

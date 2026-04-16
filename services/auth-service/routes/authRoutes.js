@@ -15,6 +15,8 @@ const {
 // Internal Admin routes
 router.post('/internal/admin/create-user', adminCreateUser);
 router.put('/internal/admin/update-user/:id', updateExistingUser);
+router.get('/internal/user/:id', getUserById);
+
 
 const { protect } = require('../middleware/auth');
 

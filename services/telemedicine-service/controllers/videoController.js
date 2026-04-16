@@ -152,6 +152,17 @@ exports.endSession = async (req, res, next) => {
         session.endedAt = new Date();
         await session.save();
 
+        // Trigger notification for consultation completion
+        const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:5006';
+        const axios = require('axios');
+        axios.post(`${notificationServiceUrl}/appointment-completed`, {
+            patientId: session.patientId,
+            doctorId: session.doctorId,
+            date: new Date().toISOString().split('T')[0],
+            doctorName: req.user.name || 'Your Doctor'
+        }).catch(err => console.error('[Telemedicine Notification Error]:', err.message));
+
+
         res.status(200).json({
             success: true,
             message: 'Video session ended',

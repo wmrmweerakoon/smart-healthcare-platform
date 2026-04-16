@@ -1,6 +1,8 @@
 const Notification = require('../models/Notification');
 const { sendEmail } = require('../services/emailService');
 const { sendSMS } = require('../services/smsService');
+const { resolveUser } = require('../utils/userResolver');
+
 
 // @desc    Send an email notification
 // @route   POST /send-email
@@ -133,9 +135,26 @@ exports.sendSMSNotification = async (req, res, next) => {
 // @route   POST /appointment-booked
 exports.appointmentBooked = async (req, res, next) => {
     try {
-        const { patientEmail, patientName, doctorName, date, time } = req.body;
+        let { patientId, patientEmail, patientName, doctorName, date, time } = req.body;
+
+        // RESOLVE REAL DATA: If patientId is provided, fetch real email/phone
+        const realUser = await resolveUser(patientId);
+        if (realUser) {
+            patientEmail = realUser.email;
+            patientName = realUser.name;
+            const patientPhone = realUser.phoneNumber;
+
+            // Trigger SMS if phone exists
+            if (patientPhone) {
+                sendSMS({
+                    to: patientPhone,
+                    message: `Hi ${patientName}, your appointment with Dr. ${doctorName} on ${date} at ${time} is CONFIRMED. - HealthCare+`
+                }).catch(err => console.error('[SMS Error]:', err.message));
+            }
+        }
 
         if (!patientEmail) {
+
             return res.status(400).json({
                 success: false,
                 message: 'patientEmail is required',
@@ -212,9 +231,25 @@ exports.appointmentBooked = async (req, res, next) => {
 // @route   POST /appointment-completed
 exports.appointmentCompleted = async (req, res, next) => {
     try {
-        const { patientEmail, patientName, doctorName, date } = req.body;
+        let { patientId, patientEmail, patientName, doctorName, date } = req.body;
+
+        // RESOLVE REAL DATA
+        const realUser = await resolveUser(patientId);
+        if (realUser) {
+            patientEmail = realUser.email;
+            patientName = realUser.name;
+            const patientPhone = realUser.phoneNumber;
+
+            if (patientPhone) {
+                sendSMS({
+                    to: patientPhone,
+                    message: `Hello ${patientName}, your consultation with Dr. ${doctorName} is now complete. You can view your report in the dashboard. - HealthCare+`
+                }).catch(err => console.error('[SMS Error]:', err.message));
+            }
+        }
 
         if (!patientEmail) {
+
             return res.status(400).json({
                 success: false,
                 message: 'patientEmail is required',
@@ -287,9 +322,25 @@ exports.appointmentCompleted = async (req, res, next) => {
 // @route   POST /doctor-appointment-received
 exports.doctorAppointmentReceived = async (req, res, next) => {
     try {
-        const { doctorEmail, doctorName, patientName, date, time, doctorId } = req.body;
+        let { doctorId, doctorEmail, doctorName, patientName, date, time } = req.body;
+
+        // RESOLVE REAL DATA
+        const realDoctor = await resolveUser(doctorId);
+        if (realDoctor) {
+            doctorEmail = realDoctor.email;
+            doctorName = realDoctor.name;
+            const doctorPhone = realDoctor.phoneNumber;
+
+            if (doctorPhone) {
+                sendSMS({
+                    to: doctorPhone,
+                    message: `Dr. ${doctorName}, you have a NEW appointment request from ${patientName} for ${date} at ${time}. - HealthCare+`
+                }).catch(err => console.error('[SMS Error]:', err.message));
+            }
+        }
 
         if (!doctorEmail) {
+
             return res.status(400).json({
                 success: false,
                 message: 'doctorEmail is required',

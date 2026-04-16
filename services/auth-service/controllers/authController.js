@@ -19,6 +19,20 @@ exports.loginValidation = [
     body('password').notEmpty().withMessage('Password is required'),
 ];
 
+// @desc    Get User By ID (Internal Service Use)
+// @route   GET /internal/user/:id
+exports.getUserById = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        res.status(200).json({ success: true, data: user });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // @desc    Register a new user
 // @route   POST /register
 // @access  Public
@@ -32,7 +46,7 @@ exports.register = async (req, res, next) => {
             });
         }
 
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, phoneNumber } = req.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -44,7 +58,7 @@ exports.register = async (req, res, next) => {
         }
 
         // Create user
-        const user = await User.create({ name, email, password, role });
+        const user = await User.create({ name, email, password, role, phoneNumber: phoneNumber || '' });
 
         // Generate token and respond
         sendTokenResponse(user, 201, res);
@@ -127,6 +141,7 @@ const sendTokenResponse = (user, statusCode, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            phoneNumber: user.phoneNumber,
         },
     });
 };
@@ -135,7 +150,8 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /internal/admin/create-user
 exports.adminCreateUser = async (req, res, next) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, phoneNumber } = req.body;
+
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -145,10 +161,12 @@ exports.adminCreateUser = async (req, res, next) => {
         const user = await User.create({
             name,
             email,
-            password: password || 'Welcome123!', // Default password
-            role: role || 'patient',
+            password,
+            role,
+            phoneNumber: phoneNumber || '',
             isVerified: true // Auto-verify if admin creates them
         });
+
 
         res.status(201).json({
             success: true,
