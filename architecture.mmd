@@ -1,0 +1,82 @@
+graph TD
+    %% Define Styles
+    classDef client fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef gateway fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef service fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+    classDef db fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
+    classDef thirdparty fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#b71c1c;
+
+    %% Client Layer
+    subgraph "Presentation Layer"
+        WebClient["🩺 React Web Client\n(Patient/Doctor/AdminDashboards)"]:::client
+    end
+
+    %% API Gateway Layer
+    subgraph "API Gateway Layer"
+        Gateway["🚦 Express API Gateway\n(:5000)\n(Auth Routing & Role Verification)"]:::gateway
+    end
+
+    %% Microservices Layer
+    subgraph "Microservices Layer"
+        Auth["Auth Service :5001"]:::service
+        Patient["Patient Service :5002"]:::service
+        Doctor["Doctor Service :5003"]:::service
+        Appt["Appointment Service :5004"]:::service
+        Pay["Payment Service :5005"]:::service
+        Notif["Notification Service :5006"]:::service
+        AI["AI Service :5007"]:::service
+        Admin["Admin Service :5008"]:::service
+        Tele["Telemedicine Service :5009"]:::service
+    end
+
+    %% Database Layer
+    subgraph "Data Persistence Layer"
+        DB_Auth[("Auth DB")]:::db
+        DB_Patient[("Patient DB")]:::db
+        DB_Doctor[("Doctor DB")]:::db
+        DB_Appt[("Appointment DB")]:::db
+        DB_Pay[("Payment DB")]:::db
+        DB_Notif[("Notification DB")]:::db
+        DB_Admin[("Admin Data")]:::db
+        DB_Tele[("Telemedicine DB")]:::db
+    end
+
+    %% External API Layer
+    subgraph "External Integrations"
+        Stripe["Stripe API\n(Payments)"]:::thirdparty
+        Gemini["Google Gemini API\n(Symptom Checker)"]:::thirdparty
+        Twilio["Twilio API\n(SMS)"]:::thirdparty
+        Email["SMTP/Email Server"]:::thirdparty
+        Jitsi["Jitsi Meet\n(WebRTC Video)"]:::thirdparty
+    end
+
+    %% Connections
+    WebClient -->|HTTP/REST| Gateway
+    
+    Gateway -->|/api/auth| Auth
+    Gateway -->|/api/patient| Patient
+    Gateway -->|/api/doctor| Doctor
+    Gateway -->|/api/appointment| Appt
+    Gateway -->|/api/payment| Pay
+    Gateway -->|/api/notification| Notif
+    Gateway -->|/api/ai| AI
+    Gateway -->|/api/admin| Admin
+    Gateway -->|/api/video| Tele
+
+    %% Database Connections
+    Auth -.-> DB_Auth
+    Patient -.-> DB_Patient
+    Doctor -.-> DB_Doctor
+    Appt -.-> DB_Appt
+    Pay -.-> DB_Pay
+    Notif -.-> DB_Notif
+    Admin -.-> DB_Auth
+    Admin -.-> DB_Appt
+    Tele -.-> DB_Tele
+
+    %% External Connections
+    Pay --> Stripe
+    AI --> Gemini
+    Notif --> Twilio
+    Notif --> Email
+    Tele --> Jitsi

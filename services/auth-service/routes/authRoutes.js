@@ -8,7 +8,9 @@ const {
     loginValidation,
     adminCreateUser,
     updateExistingUser,
+    getUserById,
 } = require('../controllers/authController');
+
 
 // ... existing routes ...
 
